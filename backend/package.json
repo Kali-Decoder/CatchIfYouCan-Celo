@@ -1,0 +1,20 @@
+{
+    "name": "mouch-backend",
+    "version": "1.0.0",
+    "description": "Mouch Game Backend Relayer",
+    "main": "relayer.cjs",
+    "scripts": {
+      "start": "node relayer.cjs",
+      "dev": "node relayer.cjs"
+    },
+    "dependencies": {
+      "dotenv": "^17.2.0",
+      "express": "^5.1.0",
+      "cors": "^2.8.5",
+      "viem": "^2.33.0",
+      "node-fetch": "^3.3.2"
+    },
+    "engines": {
+      "node": ">=18.0.0"
+    }
+  } 
