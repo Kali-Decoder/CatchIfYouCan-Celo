@@ -2,8 +2,9 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useAccount } from "wagmi";
 import { hitService } from "@/services/hitService";
-import { Trophy, Medal, User, Target, ArrowLeft, RefreshCw, Crown, Sparkles, TrendingUp, Award, ChevronLeft, ChevronRight } from "lucide-react";
+import { Trophy, Medal, User, Target, ArrowLeft, RefreshCw, Crown, Sparkles, TrendingUp, Award, ChevronLeft, ChevronRight, Star } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import spiderImage from "@/assets/spider.png";
 
 interface LeaderboardScreenProps {
   onBack: () => void;
@@ -184,6 +185,34 @@ const LeaderboardScreen = ({ onBack }: LeaderboardScreenProps) => {
     return pages;
   };
 
+  // Calculate player rank for star rating
+  const getPlayerRank = () => {
+    if (!playerStats) return 0;
+    const playerIndex = topScores.findIndex(score => score.player === playerStats.player);
+    return playerIndex >= 0 ? playerIndex + 1 : topScores.length + 1;
+  };
+
+  // Calculate star rating based on rank (1-5 stars)
+  const getStarRating = () => {
+    const rank = getPlayerRank();
+    if (rank === 0 || rank > topScores.length) return 1; // Default 1 star if not ranked
+    if (rank <= 3) return 5; // Top 3 = 5 stars
+    if (rank <= 10) return 4; // Top 10 = 4 stars
+    if (rank <= 25) return 3; // Top 25 = 3 stars
+    if (rank <= 50) return 2; // Top 50 = 2 stars
+    return 1; // Others = 1 star
+  };
+
+  // Calculate overall rating (for large number display)
+  const getOverallRating = () => {
+    if (!playerStats) return 0;
+    const score = parseInt(playerStats.totalScore);
+    const hits = playerStats.hitCount;
+    // Calculate rating based on score and hits
+    const rating = Math.floor((score * 0.7) + (hits * 10 * 0.3));
+    return Math.max(1, rating);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen w-full flex flex-col items-center justify-center bg-background text-foreground font-press-start p-4">
@@ -239,59 +268,121 @@ const LeaderboardScreen = ({ onBack }: LeaderboardScreenProps) => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-          {/* Player Stats Section */}
+          {/* Player Stats Card Section */}
           {playerStats && (
-            <div className="lg:col-span-1 order-2 lg:order-1">
-              <div className="bg-gradient-to-br from-card/90 to-card/70 backdrop-blur-sm border-2 border-white/30 rounded-xl p-5 sm:p-6 shadow-lg sticky top-4">
-                <div className="flex items-center gap-2 mb-4 pb-3 border-b border-white/20">
-                  <div className="p-2 bg-primary/20 rounded-lg">
-                    <User className="w-5 h-5 text-primary" />
+            <div className="lg:col-span-1 order-2 lg:order-1 space-y-6">
+              {/* Collectible Card Style */}
+              <div 
+                className="relative bg-gradient-to-b from-blue-900/90 via-blue-800/90 to-blue-900/90 rounded-xl overflow-hidden shadow-2xl transform hover:scale-[1.02] transition-all"
+                style={{
+                  borderTop: '3px solid rgba(234, 179, 8, 0.8)',
+                  borderLeft: '3px solid rgba(234, 179, 8, 0.8)',
+                  borderBottom: '3px solid rgba(234, 179, 8, 0.3)',
+                  borderRight: '3px solid rgba(234, 179, 8, 0.3)',
+                  boxShadow: `
+                    inset 3px 3px 6px rgba(234, 179, 8, 0.5),
+                    inset -3px -3px 6px rgba(234, 179, 8, 0.15),
+                    0 10px 30px rgba(0, 0, 0, 0.5)
+                  `
+                }}
+              >
+                {/* Upper Section - Image/Art Area */}
+                <div className="h-48 sm:h-56 bg-gradient-to-br from-blue-700/50 to-blue-900/50 flex items-center justify-center relative overflow-hidden">
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,215,0,0.1)_0%,_transparent_70%)]"></div>
+                  
+                  {/* Animated Spider */}
+                  <div className="absolute inset-0">
+                    <img 
+                      src={spiderImage} 
+                      alt="Spider" 
+                      className="absolute w-20 h-20 sm:w-24 sm:h-24 object-contain"
+                      style={{
+                        animation: 'spiderMove 8s ease-in-out infinite',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                      }}
+                    />
                   </div>
-                  <h2 className="text-lg sm:text-xl font-bold">Your Stats</h2>
+                  
+                  <div className="relative z-10 text-center mt-8">
+                    <p className="text-xs sm:text-sm text-yellow-400 font-bold">CATCH IF YOU CAN</p>
+                  </div>
                 </div>
-                
-                <div className="space-y-4">
-                  <div className="bg-white/10 rounded-lg p-4 border border-white/20">
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1">
-                        <TrendingUp className="w-3 h-3" />
-                        Total Score
-                      </p>
-                      <Award className="w-4 h-4 text-yellow-500" />
+
+                {/* Lower Section - Stats Panel */}
+                <div className="bg-gradient-to-b from-blue-800/90 to-blue-900/90 p-4 sm:p-5">
+                  {/* Player Name and Stars */}
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <Star
+                          key={i}
+                          className={`w-4 h-4 sm:w-5 sm:h-5 ${
+                            i < getStarRating()
+                              ? 'fill-yellow-500 text-yellow-500'
+                              : 'fill-gray-600 text-gray-600'
+                          }`}
+                        />
+                      ))}
                     </div>
-                    <p className="text-2xl sm:text-3xl font-bold text-primary">
-                      {formatScore(playerStats.totalScore)}
-                    </p>
-                  </div>
-                  
-                  <div className="bg-white/10 rounded-lg p-4 border border-white/20">
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1">
-                        <Target className="w-3 h-3" />
-                        Total Hits
-                      </p>
-                    </div>
-                    <p className="text-2xl sm:text-3xl font-bold text-secondary">
-                      {playerStats.hitCount}
-                    </p>
-                  </div>
-                  
-                  <div className="bg-white/10 rounded-lg p-4 border border-white/20">
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1">
-                        <Award className="w-3 h-3" />
-                        Total Reward
+                    <div className="bg-blue-700/80 border border-yellow-500/50 rounded px-3 py-1.5 flex-1 ml-2">
+                      <p className="text-white text-xs sm:text-sm font-bold text-center truncate">
+                        {formatAddress(playerStats.player).toUpperCase()}
                       </p>
                     </div>
-                    <p className="text-2xl sm:text-3xl font-bold text-yellow-500">
-                      {formatReward(playerStats.totalScore)}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">CELO</p>
                   </div>
-                  
-                  <div className="bg-white/10 rounded-lg p-3 border border-white/20">
-                    <p className="text-xs text-muted-foreground mb-1">Wallet Address</p>
-                    <p className="text-xl font-mono break-all">{formatAddress(playerStats.player)}</p>
+
+                  {/* Stats Boxes */}
+                  <div className="space-y-2 mb-3">
+                    {/* Total Score Stat */}
+                    <div className="bg-blue-700/80 border border-yellow-500/30 rounded px-3 py-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-white text-xs sm:text-sm font-bold">Total Score</span>
+                        <span className="text-white text-lg sm:text-xl font-bold">
+                          {formatScore(playerStats.totalScore)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Total Hits Stat */}
+                    <div className="bg-blue-700/80 border border-yellow-500/30 rounded px-3 py-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-white text-xs sm:text-sm font-bold">Total Hits</span>
+                        <span className="text-white text-lg sm:text-xl font-bold">
+                          {playerStats.hitCount}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Total Reward Stat */}
+                    <div className="bg-blue-700/80 border border-yellow-500/30 rounded px-3 py-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-white text-xs sm:text-sm font-bold">Total Reward</span>
+                        <span className="text-white text-lg sm:text-xl font-bold">
+                          {formatReward(playerStats.totalScore)}
+                        </span>
+                        <p className="text-xs text-yellow-400/80 mt-1">CELO</p>
+                      </div>
+                   
+                    </div>
+                  </div>
+
+                  {/* Rank Display */}
+                  <div className="flex items-end justify-end mt-8">
+                    <div className="text-right">
+                      {getPlayerRank() > 0 && getPlayerRank() <= topScores.length ? (
+                        <>
+                          <p className="text-5xl sm:text-6xl font-bold text-white leading-none ">
+                            #{getPlayerRank()}
+                          </p>
+                        </>
+                      ) : (
+                        <p className="text-2xl sm:text-3xl font-bold text-white leading-none">
+                          Unranked
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
