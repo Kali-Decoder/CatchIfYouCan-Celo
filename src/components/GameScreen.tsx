@@ -765,8 +765,10 @@ const GameScreen = ({ onBackToMenu }: GameScreenProps) => {
 
   // Floating points are animated in the unified RAF; no React interval/state needed
 
-  // Handle mouse click for bat hitting animation
-  const handleGameAreaClick = useCallback((e: React.MouseEvent) => {
+  // Reusable function to perform a hit at a specific position
+  const performHit = useCallback((hitX: number, hitY: number) => {
+    if (!gameStarted || gameOver) return;
+    
     if (gunAudioRef.current) {
       gunAudioRef.current.currentTime = 0;
       gunAudioRef.current.play();
@@ -777,28 +779,36 @@ const GameScreen = ({ onBackToMenu }: GameScreenProps) => {
     cursorAnimRef.current.hitFrame = 0;
     cursorAnimRef.current.hitTimer = 0;
 
-    // Check for collision with birds at click position using responsive hit radius
+    // Check for collision with birds at hit position using responsive hit radius
     if (gameContainerRef.current) {
-      const rect = gameContainerRef.current.getBoundingClientRect();
-      const clickX = e.clientX - rect.left;
-      const clickY = e.clientY - rect.top;
-      
       // Use responsive hit radius based on container size (increased)
       const hitRadius = getScaledSize(32);
       const r2 = hitRadius * hitRadius;
 
       // Query only nearby birds via spatial hash
-      const candidates = queryNearbyBirds(clickX, clickY, hitRadius);
+      const candidates = queryNearbyBirds(hitX, hitY, hitRadius);
       for (let i = 0; i < candidates.length; i++) {
         const bird = candidates[i];
-        const dx = clickX - bird.x;
-        const dy = clickY - bird.y;
+        const dx = hitX - bird.x;
+        const dy = hitY - bird.y;
         if (dx * dx + dy * dy < r2) {
           catchBird(bird.id);
         }
       }
     }
-  }, [catchBird, getScaledSize, queryNearbyBirds]);
+  }, [catchBird, getScaledSize, queryNearbyBirds, gameStarted, gameOver]);
+
+  // Handle mouse click for bat hitting animation
+  const handleGameAreaClick = useCallback((e: React.MouseEvent) => {
+    if (!gameStarted || gameOver) return;
+    
+    if (gameContainerRef.current) {
+      const rect = gameContainerRef.current.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const clickY = e.clientY - rect.top;
+      performHit(clickX, clickY);
+    }
+  }, [performHit, gameStarted, gameOver]);
 
   useEffect(() => {
     // Play countdown audio immediately when countdown starts
@@ -876,6 +886,26 @@ const GameScreen = ({ onBackToMenu }: GameScreenProps) => {
       }
     }
   }, [gameOver]);
+
+  // Handle spacebar key press for hitting flies
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Only trigger if spacebar is pressed and game is active
+      if (e.code === 'Space' && gameStarted && !gameOver) {
+        e.preventDefault(); // Prevent page scroll
+        // Use current cursor position (from mouse or hand tracking)
+        const cursorPos = cursorPosRef.current;
+        if (cursorPos) {
+          performHit(cursorPos.x, cursorPos.y);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [gameStarted, gameOver, performHit]);
 
   useEffect(() => {
     if (gameOver && hitHistory.length > 0 && address) {
