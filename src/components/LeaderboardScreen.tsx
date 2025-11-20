@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useAccount } from "wagmi";
 import { hitService } from "@/services/hitService";
-import { Trophy, Medal, User, Target, ArrowLeft, RefreshCw, Crown, Sparkles, TrendingUp, Award } from "lucide-react";
+import { Trophy, Medal, User, Target, ArrowLeft, RefreshCw, Crown, Sparkles, TrendingUp, Award, ChevronLeft, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface LeaderboardScreenProps {
@@ -28,6 +28,8 @@ const LeaderboardScreen = ({ onBack }: LeaderboardScreenProps) => {
   const [playerStats, setPlayerStats] = useState<PlayerStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const recordsPerPage = 10;
 
   const fetchData = async () => {
     try {
@@ -76,6 +78,18 @@ const LeaderboardScreen = ({ onBack }: LeaderboardScreenProps) => {
     return parseInt(score).toLocaleString();
   };
 
+  const calculateReward = (score: string) => {
+    return (parseInt(score) * 0.01).toFixed(2);
+  };
+
+  const formatReward = (score: string) => {
+    const reward = calculateReward(score);
+    return parseFloat(reward).toLocaleString('en-US', { 
+      minimumFractionDigits: 2, 
+      maximumFractionDigits: 2 
+    });
+  };
+
   const getRankIcon = (index: number) => {
     switch (index) {
       case 0:
@@ -113,6 +127,61 @@ const LeaderboardScreen = ({ onBack }: LeaderboardScreenProps) => {
       default:
         return "bg-white/10 border-white/20";
     }
+  };
+
+  // Pagination calculations
+  const totalPages = Math.ceil(topScores.length / recordsPerPage);
+  const startIndex = (currentPage - 1) * recordsPerPage;
+  const endIndex = startIndex + recordsPerPage;
+  const currentPageScores = topScores.slice(startIndex, endIndex);
+
+  // Reset to page 1 when data changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [topScores.length]);
+
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+      // Scroll to top of leaderboard when page changes
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const getPageNumbers = () => {
+    const pages: (number | string)[] = [];
+    const maxVisible = 5;
+    
+    if (totalPages <= maxVisible) {
+      // Show all pages if total is less than max visible
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      // Show first page
+      pages.push(1);
+      
+      if (currentPage > 3) {
+        pages.push('...');
+      }
+      
+      // Show pages around current page
+      const start = Math.max(2, currentPage - 1);
+      const end = Math.min(totalPages - 1, currentPage + 1);
+      
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+      
+      if (currentPage < totalPages - 2) {
+        pages.push('...');
+      }
+      
+      // Show last page
+      pages.push(totalPages);
+    }
+    
+    return pages;
   };
 
   if (loading) {
@@ -207,9 +276,22 @@ const LeaderboardScreen = ({ onBack }: LeaderboardScreenProps) => {
                     </p>
                   </div>
                   
+                  <div className="bg-white/10 rounded-lg p-4 border border-white/20">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1">
+                        <Award className="w-3 h-3" />
+                        Total Reward
+                      </p>
+                    </div>
+                    <p className="text-2xl sm:text-3xl font-bold text-yellow-500">
+                      {formatReward(playerStats.totalScore)}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">CELO</p>
+                  </div>
+                  
                   <div className="bg-white/10 rounded-lg p-3 border border-white/20">
                     <p className="text-xs text-muted-foreground mb-1">Wallet Address</p>
-                    <p className="text-xs font-mono break-all">{formatAddress(playerStats.player)}</p>
+                    <p className="text-xl font-mono break-all">{formatAddress(playerStats.player)}</p>
                   </div>
                 </div>
               </div>
@@ -241,87 +323,163 @@ const LeaderboardScreen = ({ onBack }: LeaderboardScreenProps) => {
                   </p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <div className="min-w-full">
-                    {/* Table Header */}
-                    <div className="hidden sm:grid grid-cols-12 gap-4 px-4 py-3 mb-2 border-b border-white/20 text-xs sm:text-sm font-bold text-muted-foreground">
-                      <div className="col-span-1 text-center">Rank</div>
-                      <div className="col-span-6 sm:col-span-7">Player</div>
-                      <div className="col-span-4 sm:col-span-3 text-right">Score</div>
-                      <div className="col-span-1"></div>
-                    </div>
+                <>
+                  <div className="overflow-x-auto">
+                    <div className="min-w-full">
+                      {/* Table Header */}
+                      <div className="hidden sm:grid grid-cols-12 gap-4 px-4 py-3 mb-2 border-b border-white/20 text-xs sm:text-sm font-bold text-muted-foreground">
+                        <div className="col-span-1 text-center">Rank</div>
+                        <div className="col-span-5 sm:col-span-5">Player</div>
+                        <div className="col-span-3 sm:col-span-2 text-right">Score</div>
+                        <div className="col-span-3 sm:col-span-3 text-right">Reward</div>
+                        <div className="col-span-0 sm:col-span-1"></div>
+                      </div>
 
-                    {/* Table Rows */}
-                    <div className="space-y-2 max-h-[60vh] overflow-y-auto scrollbar-thin">
-                      {topScores.map((score, index) => {
-                        const isCurrentUser = address === score.player;
-                        const rankBadge = getRankBadge(index);
-                        const rankIcon = getRankIcon(index);
-                        
-                        return (
-                          <div
-                            key={score.player}
-                            className={`grid grid-cols-12 gap-2 sm:gap-4 items-center px-3 sm:px-4 py-3 sm:py-4 rounded-lg border-2 transition-all hover:scale-[1.01] hover:shadow-md ${
-                              isCurrentUser
-                                ? 'bg-gradient-to-r from-primary/30 to-primary/20 border-primary shadow-lg'
-                                : getRankColor(index)
-                            }`}
-                          >
-                            {/* Rank */}
-                            <div className="col-span-2 sm:col-span-1 flex items-center justify-center">
-                              <div className="flex items-center gap-1 sm:gap-2">
-                                {rankBadge && (
-                                  <span className="text-xl sm:text-2xl">{rankBadge}</span>
-                                )}
-                                {rankIcon && (
-                                  <div className="hidden sm:block">{rankIcon}</div>
-                                )}
-                                {!rankBadge && !rankIcon && (
-                                  <div className={`flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br ${
-                                    index === 0 ? 'from-yellow-400 to-yellow-600' :
-                                    index === 1 ? 'from-gray-300 to-gray-500' :
-                                    index === 2 ? 'from-amber-600 to-amber-800' :
-                                    'from-blue-400 to-blue-600'
-                                  } border-2 border-white/30`}>
-                                    <span className="text-sm sm:text-base font-bold text-white">
-                                      {index + 1}
-                                    </span>
-                                  </div>
-                                )}
-                                {!rankBadge && !rankIcon && (
-                                  <span className="text-sm sm:text-base font-bold sm:hidden">{index + 1}</span>
+                      {/* Table Rows */}
+                      <div className="space-y-2">
+                        {currentPageScores.map((score, localIndex) => {
+                          const globalIndex = startIndex + localIndex;
+                          const isCurrentUser = address === score.player;
+                          const rankBadge = getRankBadge(globalIndex);
+                          const rankIcon = getRankIcon(globalIndex);
+                          
+                          return (
+                            <div
+                              key={score.player}
+                              className={`grid grid-cols-12 gap-2 sm:gap-4 items-center px-3 sm:px-4 py-3 sm:py-4 rounded-lg border-2 transition-all hover:scale-[1.01] hover:shadow-md ${
+                                isCurrentUser
+                                  ? 'bg-gradient-to-r from-primary/30 to-primary/20 border-primary shadow-lg'
+                                  : getRankColor(globalIndex)
+                              }`}
+                            >
+                              {/* Rank */}
+                              <div className="col-span-1 sm:col-span-1 flex items-center justify-center">
+                                <div className="flex items-center gap-1 sm:gap-2">
+                                  {rankBadge && (
+                                    <span className="text-xl sm:text-2xl">{rankBadge}</span>
+                                  )}
+                                  {rankIcon && (
+                                    <div className="hidden sm:block">{rankIcon}</div>
+                                  )}
+                                  {!rankBadge && !rankIcon && (
+                                    <div className={`flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br ${
+                                      globalIndex === 0 ? 'from-yellow-400 to-yellow-600' :
+                                      globalIndex === 1 ? 'from-gray-300 to-gray-500' :
+                                      globalIndex === 2 ? 'from-amber-600 to-amber-800' :
+                                      'from-blue-400 to-blue-600'
+                                    } border-2 border-white/30`}>
+                                      <span className="text-sm sm:text-base font-bold text-white">
+                                        {globalIndex + 1}
+                                      </span>
+                                    </div>
+                                  )}
+                                  {!rankBadge && !rankIcon && (
+                                    <span className="text-sm sm:text-base font-bold sm:hidden">{globalIndex + 1}</span>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Player Address */}
+                              <div className="col-span-4 sm:col-span-5 flex items-center gap-2 min-w-0">
+                                <p className="font-bold text-xs sm:text-sm md:text-base truncate">
+                                  {formatAddress(score.player)}
+                                </p>
+                                {isCurrentUser && (
+                                  <span className="text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded whitespace-nowrap flex-shrink-0">
+                                    YOU
+                                  </span>
                                 )}
                               </div>
-                            </div>
 
-                            {/* Player Address */}
-                            <div className="col-span-7 sm:col-span-6 flex items-center gap-2 min-w-0">
-                              <p className="font-bold text-xs sm:text-sm md:text-base truncate">
-                                {formatAddress(score.player)}
-                              </p>
-                              {isCurrentUser && (
-                                <span className="text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded whitespace-nowrap flex-shrink-0">
-                                  YOU
-                                </span>
-                              )}
-                            </div>
+                              {/* Score */}
+                              <div className="col-span-3 sm:col-span-2 text-right">
+                                <p className="text-xs sm:text-sm md:text-base font-bold text-primary">
+                                  {formatScore(score.score)}
+                                </p>
+                                <p className="text-xs text-muted-foreground hidden sm:block">points</p>
+                              </div>
 
-                            {/* Score */}
-                            <div className="col-span-3 sm:col-span-4 text-right">
-                              <p className="text-sm sm:text-base md:text-lg font-bold text-primary">
-                                {formatScore(score.score)}
-                              </p>
-                              <p className="text-xs text-muted-foreground hidden sm:block">points</p>
-                            </div>
+                              {/* Reward */}
+                              <div className="col-span-4 sm:col-span-3 text-right">
+                                <p className="text-xs sm:text-sm md:text-base font-bold text-yellow-500">
+                                  {formatReward(score.score)}
+                                </p>
+                                <p className="text-xs text-muted-foreground">CELO</p>
+                              </div>
 
-                            {/* Spacer for grid alignment */}
-                            <div className="col-span-0 sm:col-span-1"></div>
-                          </div>
-                        );
-                      })}
+                              {/* Spacer for grid alignment */}
+                              <div className="col-span-0 sm:col-span-1"></div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
-                </div>
+
+                  {/* Pagination Controls */}
+                  {totalPages > 1 && (
+                    <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-white/20">
+                      <div className="text-xs sm:text-sm text-muted-foreground">
+                        Showing {startIndex + 1} - {Math.min(endIndex, topScores.length)} of {topScores.length} players
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        {/* Previous Button */}
+                        <Button
+                          onClick={() => handlePageChange(currentPage - 1)}
+                          disabled={currentPage === 1}
+                          variant="outline"
+                          size="sm"
+                          className="font-press-start text-xs px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <ChevronLeft className="w-4 h-4" />
+                          <span className="hidden sm:inline">Prev</span>
+                        </Button>
+
+                        {/* Page Numbers */}
+                        <div className="flex items-center gap-1">
+                          {getPageNumbers().map((page, idx) => {
+                            if (page === '...') {
+                              return (
+                                <span key={`ellipsis-${idx}`} className="px-2 text-muted-foreground">
+                                  ...
+                                </span>
+                              );
+                            }
+                            const pageNum = page as number;
+                            return (
+                              <Button
+                                key={pageNum}
+                                onClick={() => handlePageChange(pageNum)}
+                                variant={currentPage === pageNum ? "default" : "outline"}
+                                size="sm"
+                                className={`font-press-start text-xs px-3 py-2 min-w-[2.5rem] ${
+                                  currentPage === pageNum
+                                    ? 'bg-primary text-primary-foreground'
+                                    : ''
+                                }`}
+                              >
+                                {pageNum}
+                              </Button>
+                            );
+                          })}
+                        </div>
+
+                        {/* Next Button */}
+                        <Button
+                          onClick={() => handlePageChange(currentPage + 1)}
+                          disabled={currentPage === totalPages}
+                          variant="outline"
+                          size="sm"
+                          className="font-press-start text-xs px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <span className="hidden sm:inline">Next</span>
+                          <ChevronRight className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>
