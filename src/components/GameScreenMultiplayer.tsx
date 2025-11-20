@@ -922,6 +922,26 @@ const GameScreenMultiplayer = ({ onBackToMenu, isHost, roomId }: GameScreenMulti
       }
   }, [gameOver, myCurrentScore, myCurrentHits, setMyTotalScore, setMyTotalHits]);
 
+  // Handle spacebar key press for hitting flies
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Only trigger if spacebar is pressed and game is active
+      if (e.code === 'Space' && gameStarted && !gameOver && !waitingForPlayers) {
+        e.preventDefault(); // Prevent page scroll
+        // Use current cursor position (from mouse or hand tracking)
+        const cursorPos = cursorPosRef.current;
+        if (cursorPos) {
+          performHit(cursorPos.x, cursorPos.y);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [gameStarted, gameOver, waitingForPlayers, performHit]);
+
   // Handle mouse movement for cursor (disabled in hand mode)
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (handModeEnabled) return;
@@ -946,14 +966,13 @@ const GameScreenMultiplayer = ({ onBackToMenu, isHost, roomId }: GameScreenMulti
 
   // Floating points animated via RAF using floatingPointsRef
 
-  // Handle mouse click for bat hitting animation
-  const handleGameAreaClick = useCallback((e: React.MouseEvent) => {
-    // Only play gun sound if game is started and not clicking on UI elements
-    if (gameStarted && !gameOver) {
-      if (gunAudioRef.current) {
-        gunAudioRef.current.currentTime = 0;
-        gunAudioRef.current.play();
-      }
+  // Reusable function to perform a hit at a specific position
+  const performHit = useCallback((hitX: number, hitY: number) => {
+    if (!gameStarted || gameOver) return;
+    
+    if (gunAudioRef.current) {
+      gunAudioRef.current.currentTime = 0;
+      gunAudioRef.current.play();
     }
     
     // Start hit animation
@@ -961,26 +980,34 @@ const GameScreenMultiplayer = ({ onBackToMenu, isHost, roomId }: GameScreenMulti
     cursorAnimRef.current.hitFrame = 0;
     cursorAnimRef.current.hitTimer = 0;
 
-    // Check for collision with birds at click position using responsive hit radius
-    if (gameContainerRef.current && gameStarted && !gameOver) {
-      const rect = gameContainerRef.current.getBoundingClientRect();
-      const clickX = e.clientX - rect.left;
-      const clickY = e.clientY - rect.top;
-      
+    // Check for collision with birds at hit position using responsive hit radius
+    if (gameContainerRef.current) {
       // Use responsive hit radius based on container size (32)
       const hitRadius = getScaledSize(32);
       const r2 = hitRadius * hitRadius;
-      const candidates = queryNearbyBirds(clickX, clickY, hitRadius);
+      const candidates = queryNearbyBirds(hitX, hitY, hitRadius);
       for (let i = 0; i < candidates.length; i++) {
         const bird = candidates[i];
-        const dx = clickX - bird.x;
-        const dy = clickY - bird.y;
+        const dx = hitX - bird.x;
+        const dy = hitY - bird.y;
         if (dx * dx + dy * dy < r2) {
           catchBird(bird.id);
         }
       }
     }
   }, [gameStarted, gameOver, catchBird, getScaledSize, queryNearbyBirds]);
+
+  // Handle mouse click for bat hitting animation
+  const handleGameAreaClick = useCallback((e: React.MouseEvent) => {
+    if (!gameStarted || gameOver) return;
+    
+    if (gameContainerRef.current) {
+      const rect = gameContainerRef.current.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const clickY = e.clientY - rect.top;
+      performHit(clickX, clickY);
+    }
+  }, [performHit, gameStarted, gameOver]);
 
   // Copy room ID to clipboard
   const copyRoomId = async () => {
