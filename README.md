@@ -345,29 +345,6 @@ npm run lint
    - Restart dev server after changing `.env`
    - Check variable names start with `VITE_` for frontend
 
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## 📄 License
-
-This project is open source and available under the MIT License.
-
-## 🔗 Links
-
-- [Celo Documentation](https://docs.celo.org/)
-- [RainbowKit Documentation](https://www.rainbowkit.com/)
-- [MediaPipe Hands](https://google.github.io/mediapipe/solutions/hands)
-- [Supabase Documentation](https://supabase.com/docs)
-- [React Together](https://react-together.com/)
-
-## 📧 Support
-
-For issues, questions, or contributions, please open an issue on the repository.
 
 ---
 
