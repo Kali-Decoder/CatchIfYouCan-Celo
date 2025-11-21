@@ -3,41 +3,37 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { supabaseStatsService, GlobalStats } from "@/services/supabaseStatsService";
 import { Users, Gamepad2, Target, Trophy } from "lucide-react";
 
-// Component to safely render animated or static numbers
-const NumberDisplay = ({ value }: { value: number }) => {
-  const [AnimatedNumbers, setAnimatedNumbers] = useState<any>(null);
-  const [error, setError] = useState(false);
+// Simple animated number component without external dependency
+const AnimatedNumber = ({ value }: { value: number }) => {
+  const [displayValue, setDisplayValue] = useState(0);
 
   useEffect(() => {
-    // Try to dynamically import AnimatedNumbers
-    import("react-animated-numbers")
-      .then((module) => {
-        setAnimatedNumbers(() => module.default);
-      })
-      .catch((err) => {
-        console.warn("react-animated-numbers not available, using fallback", err);
-        setError(true);
-      });
-  }, []);
+    if (value === 0) {
+      setDisplayValue(0);
+      return;
+    }
 
-  if (error || !AnimatedNumbers) {
-    return <span>{value.toLocaleString()}</span>;
-  }
+    const duration = 1000; // 1 second animation
+    const steps = 30;
+    const increment = value / steps;
+    const stepDuration = duration / steps;
+    let currentStep = 0;
 
-  try {
-    return (
-      <AnimatedNumbers
-        includeComma
-        animateToNumber={value}
-        configs={(number: number, index: number) => {
-          return { mass: 1, tension: 230, friction: 140 };
-        }}
-      />
-    );
-  } catch (err) {
-    console.error("Error rendering AnimatedNumbers:", err);
-    return <span>{value.toLocaleString()}</span>;
-  }
+    const timer = setInterval(() => {
+      currentStep++;
+      const newValue = Math.min(Math.floor(increment * currentStep), value);
+      setDisplayValue(newValue);
+
+      if (currentStep >= steps) {
+        setDisplayValue(value);
+        clearInterval(timer);
+      }
+    }, stepDuration);
+
+    return () => clearInterval(timer);
+  }, [value]);
+
+  return <span>{displayValue.toLocaleString()}</span>;
 };
 
 interface GlobalStatsModalProps {
@@ -87,7 +83,7 @@ const GlobalStatsModal = ({ open, onOpenChange }: GlobalStatsModalProps) => {
               <Users className="w-8 h-8 text-white" />
               <div className="text-xs sm:text-sm text-white/80 text-center">PLAYERS</div>
               <div className="text-2xl sm:text-3xl font-bold text-white">
-                <NumberDisplay value={stats.totalPlayers} />
+                <AnimatedNumber value={stats.totalPlayers} />
               </div>
             </div>
 
@@ -96,7 +92,7 @@ const GlobalStatsModal = ({ open, onOpenChange }: GlobalStatsModalProps) => {
               <Gamepad2 className="w-8 h-8 text-white" />
               <div className="text-xs sm:text-sm text-white/80 text-center">GAMES</div>
               <div className="text-2xl sm:text-3xl font-bold text-white">
-                <NumberDisplay value={stats.totalGames} />
+                <AnimatedNumber value={stats.totalGames} />
               </div>
             </div>
 
@@ -105,7 +101,7 @@ const GlobalStatsModal = ({ open, onOpenChange }: GlobalStatsModalProps) => {
               <Target className="w-8 h-8 text-white" />
               <div className="text-xs sm:text-sm text-white/80 text-center">HITS</div>
               <div className="text-2xl sm:text-3xl font-bold text-white">
-                <NumberDisplay value={stats.totalHits} />
+                <AnimatedNumber value={stats.totalHits} />
               </div>
             </div>
 
@@ -114,7 +110,7 @@ const GlobalStatsModal = ({ open, onOpenChange }: GlobalStatsModalProps) => {
               <Trophy className="w-8 h-8 text-white" />
               <div className="text-xs sm:text-sm text-white/80 text-center">SCORE</div>
               <div className="text-2xl sm:text-3xl font-bold text-white">
-                <NumberDisplay value={stats.totalScore} />
+                <AnimatedNumber value={stats.totalScore} />
               </div>
             </div>
           </div>
