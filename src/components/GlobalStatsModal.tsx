@@ -1,8 +1,44 @@
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabaseStatsService, GlobalStats } from "@/services/supabaseStatsService";
-import AnimatedNumbers from "react-animated-numbers";
 import { Users, Gamepad2, Target, Trophy } from "lucide-react";
+
+// Component to safely render animated or static numbers
+const NumberDisplay = ({ value }: { value: number }) => {
+  const [AnimatedNumbers, setAnimatedNumbers] = useState<any>(null);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    // Try to dynamically import AnimatedNumbers
+    import("react-animated-numbers")
+      .then((module) => {
+        setAnimatedNumbers(() => module.default);
+      })
+      .catch((err) => {
+        console.warn("react-animated-numbers not available, using fallback", err);
+        setError(true);
+      });
+  }, []);
+
+  if (error || !AnimatedNumbers) {
+    return <span>{value.toLocaleString()}</span>;
+  }
+
+  try {
+    return (
+      <AnimatedNumbers
+        includeComma
+        animateToNumber={value}
+        configs={(number: number, index: number) => {
+          return { mass: 1, tension: 230, friction: 140 };
+        }}
+      />
+    );
+  } catch (err) {
+    console.error("Error rendering AnimatedNumbers:", err);
+    return <span>{value.toLocaleString()}</span>;
+  }
+};
 
 interface GlobalStatsModalProps {
   open: boolean;
@@ -51,13 +87,7 @@ const GlobalStatsModal = ({ open, onOpenChange }: GlobalStatsModalProps) => {
               <Users className="w-8 h-8 text-white" />
               <div className="text-xs sm:text-sm text-white/80 text-center">PLAYERS</div>
               <div className="text-2xl sm:text-3xl font-bold text-white">
-                <AnimatedNumbers
-                  includeComma
-                  animateToNumber={stats.totalPlayers}
-                  configs={(number, index) => {
-                    return { mass: 1, tension: 230, friction: 140 };
-                  }}
-                />
+                <NumberDisplay value={stats.totalPlayers} />
               </div>
             </div>
 
@@ -66,13 +96,7 @@ const GlobalStatsModal = ({ open, onOpenChange }: GlobalStatsModalProps) => {
               <Gamepad2 className="w-8 h-8 text-white" />
               <div className="text-xs sm:text-sm text-white/80 text-center">GAMES</div>
               <div className="text-2xl sm:text-3xl font-bold text-white">
-                <AnimatedNumbers
-                  includeComma
-                  animateToNumber={stats.totalGames}
-                  configs={(number, index) => {
-                    return { mass: 1, tension: 230, friction: 140 };
-                  }}
-                />
+                <NumberDisplay value={stats.totalGames} />
               </div>
             </div>
 
@@ -81,13 +105,7 @@ const GlobalStatsModal = ({ open, onOpenChange }: GlobalStatsModalProps) => {
               <Target className="w-8 h-8 text-white" />
               <div className="text-xs sm:text-sm text-white/80 text-center">HITS</div>
               <div className="text-2xl sm:text-3xl font-bold text-white">
-                <AnimatedNumbers
-                  includeComma
-                  animateToNumber={stats.totalHits}
-                  configs={(number, index) => {
-                    return { mass: 1, tension: 230, friction: 140 };
-                  }}
-                />
+                <NumberDisplay value={stats.totalHits} />
               </div>
             </div>
 
@@ -96,13 +114,7 @@ const GlobalStatsModal = ({ open, onOpenChange }: GlobalStatsModalProps) => {
               <Trophy className="w-8 h-8 text-white" />
               <div className="text-xs sm:text-sm text-white/80 text-center">SCORE</div>
               <div className="text-2xl sm:text-3xl font-bold text-white">
-                <AnimatedNumbers
-                  includeComma
-                  animateToNumber={stats.totalScore}
-                  configs={(number, index) => {
-                    return { mass: 1, tension: 230, friction: 140 };
-                  }}
-                />
+                <NumberDisplay value={stats.totalScore} />
               </div>
             </div>
           </div>
