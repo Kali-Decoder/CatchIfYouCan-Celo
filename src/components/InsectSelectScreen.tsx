@@ -1,8 +1,9 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useCreateRandomSession, useIsTogether, useLeaveSession } from "react-together";
-import { Trophy, BarChart3 } from "lucide-react";
+import { Trophy, BarChart3, Play, Users, Home } from "lucide-react";
 import GlobalStatsModal from "./GlobalStatsModal";
 import beeGif from "/animals/bee.gif";
 import butterflyGif from "/animals/butterfly.gif";
@@ -123,87 +124,146 @@ const BirdSelectScreen = ({ onStartGame, onShowLeaderboard }: BirdSelectScreenPr
         </div>
       </div>
 
-      {/* Game Mode Buttons */}
-      <div className="flex flex-col gap-3 w-full max-w-sm justify-center">
-        <div className="flex flex-col sm:flex-row gap-3">
-          <Button
-            onClick={() => onStartGame('singleplayer')}
-            className="bg-primary text-primary-foreground hover:opacity-90 font-press-start 
-                       text-sm sm:text-base px-4 sm:px-6 py-2 sm:py-3 flex-1"
-          >
-            Singleplayer
-          </Button>
-          <Button
-            onClick={() => setModalOpen(true)}
-            className="bg-secondary text-secondary-foreground hover:opacity-90 font-press-start 
-                       text-sm sm:text-base px-4 sm:px-6 py-2 sm:py-3 flex-1"
-          >
-            Multiplayer
-          </Button>
-        </div>
-        
-        {/* Additional Buttons */}
-        <div className="flex flex-col sm:flex-row gap-3">
-          <Button
-            onClick={onShowLeaderboard}
-            className="bg-primary text-primary-foreground hover:opacity-90 font-press-start 
-                       text-sm sm:text-base px-4 sm:px-6 py-2 sm:py-3 flex-1"
-          >
-            Leaderboard&nbsp;
-          </Button>
-          <Button
-            onClick={() => window.location.href = '/'}
-            className="bg-secondary text-secondary-foreground hover:opacity-90 font-press-start 
-                       text-sm sm:text-base px-4 sm:px-6 py-2 sm:py-3 flex-1"
-          >
-            Main Menu&nbsp;&nbsp;
-          </Button>
-        </div>
-        
-        <Button
-          onClick={() => setStatsModalOpen(true)}
-          className="bg-primary text-primary-foreground hover:opacity-90 font-press-start 
-                     text-sm sm:text-base px-4 sm:px-6 py-2 sm:py-3"
-        >
-          <BarChart3 className="w-4 h-4 mr-2" />
-          Stats&nbsp;&nbsp;&nbsp;
-        </Button>
+ 
+      <div className="w-full max-w-2xl flex justify-center">
+        <TooltipProvider>
+          <div className="flex gap-3 justify-items-center">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  onClick={() => onStartGame('singleplayer')}
+                  className="bg-primary text-primary-foreground hover:opacity-90 font-press-start 
+                             rounded-full w-12 h-12 sm:w-12 sm:h-12 flex items-center justify-center p-0"
+                >
+                  <Play className="w-16 h-16 sm:w-16 sm:h-16" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Singleplayer</p>
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  onClick={() => setModalOpen(true)}
+                  className="bg-secondary text-secondary-foreground hover:opacity-90 font-press-start 
+                             rounded-full w-12 h-12 sm:w-12 sm:h-12 flex items-center justify-center p-0"
+                >
+                  <Users className="w-16 h-16 sm:w-16 sm:h-16" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Multiplayer</p>
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  onClick={onShowLeaderboard}
+                  className="bg-primary text-primary-foreground hover:opacity-90 font-press-start 
+                             rounded-full w-12 h-12 sm:w-12 sm:h-12 flex items-center justify-center p-0"
+                >
+                  <Trophy className="w-16 h-16 sm:w-16 sm:h-16" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Leaderboard</p>
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  onClick={() => window.location.href = '/'}
+                  className="bg-secondary text-secondary-foreground hover:opacity-90 font-press-start 
+                             rounded-full w-12 h-12 sm:w-12 sm:h-12 flex items-center justify-center p-0"
+                >
+                  <Home className="w-16 h-16 sm:w-16 sm:h-16" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Main Menu</p>
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  onClick={() => setStatsModalOpen(true)}
+                  className="bg-primary text-primary-foreground hover:opacity-90 font-press-start 
+                             rounded-full w-12 h-12 sm:w-12 sm:h-12 sm:col-span-2 lg:col-span-1 flex items-center justify-center p-0"
+                >
+                  <BarChart3 className="w-16 h-16 sm:w-16 sm:h-16" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Stats</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
+        </TooltipProvider>
       </div>
 
-      {/* Multiplayer Dialog */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-xl font-press-start">Multiplayer</DialogTitle>
           </DialogHeader>
-          <div className="flex flex-col gap-4">
-            <Button 
-              onClick={handleCreateRoom} 
-              className="w-full bg-primary text-primary-foreground font-press-start py-3"
-            >
-              Create Room
-            </Button>
-            <div className="flex flex-col gap-2">
-              <input
-                type="text"
-                placeholder="Enter Room ID"
-                value={joinRoomId}
-                onChange={e => { setJoinRoomId(e.target.value); setJoinError(""); }}
-                className="border rounded px-3 py-2 text-black font-press-start"
-              />
-              {joinError && <span className="text-red-500 text-xs">{joinError}</span>}
-              <Button 
-                onClick={handleJoinRoom} 
-                className="w-full bg-secondary text-secondary-foreground font-press-start py-3"
-              >
-                Join Room
-              </Button>
+          <TooltipProvider>
+            <div className="flex flex-col gap-4">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    onClick={handleCreateRoom} 
+                    className="w-full bg-primary text-primary-foreground font-press-start py-3"
+                  >
+                    Create Room
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Create a new multiplayer room</p>
+                </TooltipContent>
+              </Tooltip>
+              <div className="flex flex-col gap-2">
+                <input
+                  type="text"
+                  placeholder="Enter Room ID"
+                  value={joinRoomId}
+                  onChange={e => { setJoinRoomId(e.target.value); setJoinError(""); }}
+                  className="border rounded px-3 py-2 text-black font-press-start"
+                />
+                {joinError && <span className="text-red-500 text-xs">{joinError}</span>}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      onClick={handleJoinRoom} 
+                      className="w-full bg-secondary text-secondary-foreground font-press-start py-3"
+                    >
+                      Join Room
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Join an existing multiplayer room</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
             </div>
-          </div>
+          </TooltipProvider>
           <DialogFooter>
-            <DialogClose asChild>
-              <Button variant="outline" className="font-press-start">Cancel</Button>
-            </DialogClose>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DialogClose asChild>
+                    <Button variant="outline" className="font-press-start">Cancel</Button>
+                  </DialogClose>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Close this dialog</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </DialogFooter>
         </DialogContent>
       </Dialog>

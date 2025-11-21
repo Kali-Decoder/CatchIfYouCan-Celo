@@ -34,7 +34,7 @@ const LeaderboardScreen = ({ onBack }: LeaderboardScreenProps) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const recordsPerPage = 10;
+  const recordsPerPage = 5;
 
   const fetchData = async () => {
     try {
