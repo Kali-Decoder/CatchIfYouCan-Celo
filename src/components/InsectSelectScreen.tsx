@@ -2,7 +2,8 @@ import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { useCreateRandomSession, useIsTogether, useLeaveSession } from "react-together";
-import { Trophy } from "lucide-react";
+import { Trophy, BarChart3 } from "lucide-react";
+import GlobalStatsModal from "./GlobalStatsModal";
 import beeGif from "/animals/bee.gif";
 import butterflyGif from "/animals/butterfly.gif";
 import bluemouchGif from "/animals/bluemouch.gif";
@@ -25,6 +26,7 @@ const PASSWORD = import.meta.env.VITE_MULTISYNQ_SESSION_PASSWORD || 'catchbirds'
 
 const BirdSelectScreen = ({ onStartGame, onShowLeaderboard }: BirdSelectScreenProps) => {
   const [modalOpen, setModalOpen] = useState(false);
+  const [statsModalOpen, setStatsModalOpen] = useState(false);
   const [joinRoomId, setJoinRoomId] = useState("");
   const [joinError, setJoinError] = useState("");
   const createRandomSession = useCreateRandomSession();
@@ -145,19 +147,27 @@ const BirdSelectScreen = ({ onStartGame, onShowLeaderboard }: BirdSelectScreenPr
           <Button
             onClick={onShowLeaderboard}
             className="bg-primary text-primary-foreground hover:opacity-90 font-press-start 
-                       text-sm sm:text-base px-4 sm:px-6 py-2 sm:py-3 flex items-center justify-center gap-2 flex-1"
+                       text-sm sm:text-base px-4 sm:px-6 py-2 sm:py-3 flex-1"
           >
-            {/* <Trophy className="w-4 h-4" /> */}
             Leaderboard&nbsp;
           </Button>
           <Button
             onClick={() => window.location.href = '/'}
             className="bg-secondary text-secondary-foreground hover:opacity-90 font-press-start 
-                       text-sm sm:text-base px-4 sm:px-6 py-2 sm:py-3 flex items-center justify-center gap-2 flex-1"
+                       text-sm sm:text-base px-4 sm:px-6 py-2 sm:py-3 flex-1"
           >
             Main Menu&nbsp;&nbsp;
           </Button>
         </div>
+        
+        <Button
+          onClick={() => setStatsModalOpen(true)}
+          className="bg-primary text-primary-foreground hover:opacity-90 font-press-start 
+                     text-sm sm:text-base px-4 sm:px-6 py-2 sm:py-3"
+        >
+          <BarChart3 className="w-4 h-4 mr-2" />
+          Stats&nbsp;&nbsp;&nbsp;
+        </Button>
       </div>
 
       {/* Multiplayer Dialog */}
@@ -197,6 +207,9 @@ const BirdSelectScreen = ({ onStartGame, onShowLeaderboard }: BirdSelectScreenPr
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Global Stats Modal */}
+      <GlobalStatsModal open={statsModalOpen} onOpenChange={setStatsModalOpen} />
     </div>
   );
 };

@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useAccount } from "wagmi";
-import { hitService } from "@/services/hitService";
+// import { hitService } from "@/services/hitService"; // COMMENTED: Using Supabase instead
+import { supabaseStatsService } from "@/services/supabaseStatsService";
 import { Trophy, Medal, User, Target, ArrowLeft, RefreshCw, Crown, Sparkles, TrendingUp, Award, ChevronLeft, ChevronRight, Star } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import spiderImage from "@/assets/spider.png";
@@ -11,15 +12,18 @@ interface LeaderboardScreenProps {
 }
 
 interface TopScore {
-  player: string;
-  score: string;
-  timestamp: string;
+  player_address: string;
+  total_score: number;
+  total_hits: number;
+  games_played: number;
 }
 
 interface PlayerStats {
-  player: string;
-  totalScore: string;
-  hitCount: number;
+  player_address: string;
+  total_score: number;
+  total_hits: number;
+  games_played: number;
+  rank: number;
 }
 
 const LeaderboardScreen = ({ onBack }: LeaderboardScreenProps) => {
@@ -36,15 +40,19 @@ const LeaderboardScreen = ({ onBack }: LeaderboardScreenProps) => {
     try {
       setLoading(true);
       
-      // Fetch top scores
-      const scores = await hitService.getTopScores();
+      // Fetch top 50 scores from Supabase
+      const scores = await supabaseStatsService.getLeaderboard(50);
       setTopScores(scores);
 
       // Fetch player stats if wallet is connected
       if (address) {
-        const stats = await hitService.getPlayerScore(address);
+        const stats = await supabaseStatsService.getPlayerStats(address);
         setPlayerStats(stats);
       }
+
+      // COMMENTED: Old contract-based code
+      // const scores = await hitService.getTopScores();
+      // const stats = await hitService.getPlayerScore(address);
     } catch (error) {
       console.error("Failed to fetch leaderboard data:", error);
       toast({
@@ -75,15 +83,15 @@ const LeaderboardScreen = ({ onBack }: LeaderboardScreenProps) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
-  const formatScore = (score: string) => {
-    return parseInt(score).toLocaleString();
+  const formatScore = (score: number) => {
+    return score.toLocaleString();
   };
 
-  const calculateReward = (score: string) => {
-    return (parseInt(score) * 0.01).toFixed(2);
+  const calculateReward = (score: number) => {
+    return (score * 0.01).toFixed(2);
   };
 
-  const formatReward = (score: string) => {
+  const formatReward = (score: number) => {
     const reward = calculateReward(score);
     return parseFloat(reward).toLocaleString('en-US', { 
       minimumFractionDigits: 2, 
@@ -188,8 +196,7 @@ const LeaderboardScreen = ({ onBack }: LeaderboardScreenProps) => {
   // Calculate player rank for star rating
   const getPlayerRank = () => {
     if (!playerStats) return 0;
-    const playerIndex = topScores.findIndex(score => score.player === playerStats.player);
-    return playerIndex >= 0 ? playerIndex + 1 : topScores.length + 1;
+    return playerStats.rank;
   };
 
   // Calculate star rating based on rank (1-5 stars)
@@ -206,8 +213,8 @@ const LeaderboardScreen = ({ onBack }: LeaderboardScreenProps) => {
   // Calculate overall rating (for large number display)
   const getOverallRating = () => {
     if (!playerStats) return 0;
-    const score = parseInt(playerStats.totalScore);
-    const hits = playerStats.hitCount;
+    const score = playerStats.total_score;
+    const hits = playerStats.total_hits;
     // Calculate rating based on score and hits
     const rating = Math.floor((score * 0.7) + (hits * 10 * 0.3));
     return Math.max(1, rating);
@@ -328,7 +335,7 @@ const LeaderboardScreen = ({ onBack }: LeaderboardScreenProps) => {
                     </div>
                     <div className="bg-blue-700/80 border border-yellow-500/50 rounded px-3 py-1.5 flex-1 ml-2">
                       <p className="text-white text-xs sm:text-sm font-bold text-center truncate">
-                        {formatAddress(playerStats.player).toUpperCase()}
+                        {formatAddress(playerStats.player_address).toUpperCase()}
                       </p>
                     </div>
                   </div>
@@ -340,7 +347,7 @@ const LeaderboardScreen = ({ onBack }: LeaderboardScreenProps) => {
                       <div className="flex items-center justify-between">
                         <span className="text-white text-xs sm:text-sm font-bold">Total Score</span>
                         <span className="text-white text-lg sm:text-xl font-bold">
-                          {formatScore(playerStats.totalScore)}
+                          {formatScore(playerStats.total_score)}
                         </span>
                       </div>
                     </div>
@@ -350,7 +357,7 @@ const LeaderboardScreen = ({ onBack }: LeaderboardScreenProps) => {
                       <div className="flex items-center justify-between">
                         <span className="text-white text-xs sm:text-sm font-bold">Total Hits</span>
                         <span className="text-white text-lg sm:text-xl font-bold">
-                          {playerStats.hitCount}
+                          {playerStats.total_hits}
                         </span>
                       </div>
                     </div>
@@ -360,7 +367,7 @@ const LeaderboardScreen = ({ onBack }: LeaderboardScreenProps) => {
                       <div className="flex items-center justify-between">
                         <span className="text-white text-xs sm:text-sm font-bold">Total Reward</span>
                         <span className="text-white text-lg sm:text-xl font-bold">
-                          {formatReward(playerStats.totalScore)}
+                          {formatReward(playerStats.total_score)}
                         </span>
                         <p className="text-xs text-yellow-400/80 mt-1">CELO</p>
                       </div>
@@ -430,13 +437,13 @@ const LeaderboardScreen = ({ onBack }: LeaderboardScreenProps) => {
                       <div className="space-y-2">
                         {currentPageScores.map((score, localIndex) => {
                           const globalIndex = startIndex + localIndex;
-                          const isCurrentUser = address === score.player;
+                          const isCurrentUser = address === score.player_address;
                           const rankBadge = getRankBadge(globalIndex);
                           const rankIcon = getRankIcon(globalIndex);
                           
                           return (
                             <div
-                              key={score.player}
+                              key={score.player_address}
                               className={`grid grid-cols-12 gap-2 sm:gap-4 items-center px-3 sm:px-4 py-3 sm:py-4 rounded-lg border-2 transition-all hover:scale-[1.01] hover:shadow-md ${
                                 isCurrentUser
                                   ? 'bg-gradient-to-r from-primary/30 to-primary/20 border-primary shadow-lg'
@@ -473,7 +480,7 @@ const LeaderboardScreen = ({ onBack }: LeaderboardScreenProps) => {
                               {/* Player Address */}
                               <div className="col-span-4 sm:col-span-5 flex items-center gap-2 min-w-0">
                                 <p className="font-bold text-xs sm:text-sm md:text-base truncate">
-                                  {formatAddress(score.player)}
+                                  {formatAddress(score.player_address)}
                                 </p>
                                 {isCurrentUser && (
                                   <span className="text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded whitespace-nowrap flex-shrink-0">
@@ -485,7 +492,7 @@ const LeaderboardScreen = ({ onBack }: LeaderboardScreenProps) => {
                               {/* Score */}
                               <div className="col-span-3 sm:col-span-2 text-right">
                                 <p className="text-xs sm:text-sm md:text-base font-bold text-primary">
-                                  {formatScore(score.score)}
+                                  {formatScore(score.total_score)}
                                 </p>
                                 <p className="text-xs text-muted-foreground hidden sm:block">points</p>
                               </div>
@@ -493,7 +500,7 @@ const LeaderboardScreen = ({ onBack }: LeaderboardScreenProps) => {
                               {/* Reward */}
                               <div className="col-span-4 sm:col-span-3 text-right">
                                 <p className="text-xs sm:text-sm md:text-base font-bold text-yellow-500">
-                                  {formatReward(score.score)}
+                                  {formatReward(score.total_score)}
                                 </p>
                                 <p className="text-xs text-muted-foreground">CELO</p>
                               </div>
