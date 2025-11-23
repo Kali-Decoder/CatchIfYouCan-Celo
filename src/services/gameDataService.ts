@@ -1,3 +1,67 @@
+// COMMENTED: Direct Supabase access - now using backend API
+// import { supabase } from "@/lib/supabaseClient";
+
+// Use the same relayer URL for Supabase operations
+const RELAYER_URL = import.meta.env.VITE_RELAYER_URL || "https://catchthemouchbackend.onrender.com";
+
+/**
+ * Save game data via backend API (with validation)
+ * Backend will validate:
+ * 1. Score limits (0-600)
+ * 2. Hits limits (0-600)
+ * 3. Hit history consistency
+ * 4. Valid point values
+ */
+export async function saveGameData({
+  sessionType,
+  hostAddress,
+  score,
+  hits,
+  hitHistory,
+  durationSec = 60,
+  playerId = null,
+  gameNumber = 1,
+  sessionId = null,
+  allPlayersData = null,
+}) {
+  try {
+    const response = await fetch(`${RELAYER_URL}/api/submitScore`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        sessionType,
+        hostAddress,
+        score,
+        hits,
+        hitHistory,
+        durationSec,
+        playerId,
+        gameNumber,
+        sessionId,
+        allPlayersData,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to save game data');
+    }
+
+    console.log("✅ Game data saved via backend:", data);
+    return data.sessionId;
+  } catch (error) {
+    console.error("❌ Failed to save game data:", error);
+    throw error;
+  }
+}
+
+/* ============================================
+   COMMENTED: Old direct Supabase code
+   ============================================
+
 import { supabase } from "@/lib/supabaseClient";
 
 export async function saveGameData({
@@ -126,3 +190,5 @@ export async function saveGameData({
     return session.id;
   }
 }
+
+============================================ */
